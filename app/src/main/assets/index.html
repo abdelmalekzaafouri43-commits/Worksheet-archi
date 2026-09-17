@@ -304,6 +304,7 @@
                     document.getElementById('doc-instructions').value = data.instructions;
                     document.getElementById('preview-instructions').innerText = data.instructions;
                 }
+                saveState();
                 
                 alert("Operation Complete! Extracted/Generated: " + data.heading);
             } catch(e) {
@@ -389,6 +390,7 @@
                         document.getElementById('doc-instructions').value = data.instructions;
                         document.getElementById('preview-instructions').innerText = data.instructions;
                     }
+                    saveState();
                 }
             } catch(e) {
                 console.error(e);
@@ -396,14 +398,49 @@
             }
         }
 
+        // State Management
+        function saveState() {
+            const state = {
+                heading: document.getElementById('doc-heading').value,
+                instructions: document.getElementById('doc-instructions').value,
+                layout: document.getElementById('layout-grid').innerHTML
+            };
+            localStorage.setItem('worksheetState', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const stateStr = localStorage.getItem('worksheetState');
+            if (stateStr) {
+                try {
+                    const state = JSON.parse(stateStr);
+                    if (state.heading !== undefined) {
+                        document.getElementById('doc-heading').value = state.heading;
+                        document.getElementById('preview-heading').innerText = state.heading || '[Main Document Title]';
+                    }
+                    if (state.instructions !== undefined) {
+                        document.getElementById('doc-instructions').value = state.instructions;
+                        document.getElementById('preview-instructions').innerText = state.instructions || '[Subtitle / Instructions]';
+                    }
+                    if (state.layout) {
+                        document.getElementById('layout-grid').innerHTML = state.layout;
+                    }
+                } catch(e) {
+                    console.error("Error loading state", e);
+                }
+            }
+        }
+
         // Drag and Drop Logic
-        document.addEventListener('DOMContentLoaded', () => {
+        function bindDragEvents() {
             const boxes = document.querySelectorAll('.layout-box');
-            const grid = document.getElementById('layout-grid');
             let draggedBox = null;
 
             boxes.forEach(box => {
-                box.addEventListener('dragstart', function(e) {
+                // Clear old listeners by cloning
+                const newBox = box.cloneNode(true);
+                box.parentNode.replaceChild(newBox, box);
+
+                newBox.addEventListener('dragstart', function(e) {
                     draggedBox = this;
                     setTimeout(() => {
                         this.style.opacity = '0.5';
@@ -411,32 +448,50 @@
                     e.dataTransfer.effectAllowed = 'move';
                 });
 
-                box.addEventListener('dragend', function() {
+                newBox.addEventListener('dragend', function() {
                     draggedBox = null;
                     this.style.opacity = '1';
-                    boxes.forEach(b => b.classList.remove('border-blue-500', 'bg-blue-100'));
+                    document.querySelectorAll('.layout-box').forEach(b => b.classList.remove('border-blue-500', 'bg-blue-100'));
                 });
 
-                box.addEventListener('dragover', function(e) {
+                newBox.addEventListener('dragover', function(e) {
                     e.preventDefault();
                     this.classList.add('border-blue-500', 'bg-blue-100');
                     return false;
                 });
 
-                box.addEventListener('dragleave', function() {
+                newBox.addEventListener('dragleave', function() {
                     this.classList.remove('border-blue-500', 'bg-blue-100');
                 });
 
-                box.addEventListener('drop', function(e) {
+                newBox.addEventListener('drop', function(e) {
                     e.stopPropagation();
                     if (draggedBox !== this) {
-                        // Swap HTML content (or you could swap the actual DOM nodes)
                         const draggedHTML = draggedBox.innerHTML;
                         draggedBox.innerHTML = this.innerHTML;
                         this.innerHTML = draggedHTML;
+                        saveState();
                     }
                     return false;
                 });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load saved state first
+            loadState();
+            // Bind drag events to the loaded (or default) grid
+            bindDragEvents();
+
+            // Setup real-time input sync and save
+            document.getElementById('doc-heading').addEventListener('input', (e) => {
+                document.getElementById('preview-heading').innerText = e.target.value || '[Main Document Title]';
+                saveState();
+            });
+
+            document.getElementById('doc-instructions').addEventListener('input', (e) => {
+                document.getElementById('preview-instructions').innerText = e.target.value || '[Subtitle / Instructions]';
+                saveState();
             });
         });
     </script>
