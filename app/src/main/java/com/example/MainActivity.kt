@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.ui.theme.MyApplicationTheme
+import android.util.Base64
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -39,7 +40,7 @@ class MainActivity : ComponentActivity() {
 
 class WebAppInterface(
     private val onScanRequested: () -> Unit,
-    private val onGenerateRequested: (String) -> Unit
+    private val onChatRequested: (String) -> Unit
 ) {
     @JavascriptInterface
     fun startArScan() {
@@ -47,8 +48,8 @@ class WebAppInterface(
     }
 
     @JavascriptInterface
-    fun generateWorksheet(prompt: String) {
-        onGenerateRequested(prompt)
+    fun sendChatMessage(message: String) {
+        onChatRequested(message)
     }
 }
 
@@ -92,12 +93,13 @@ fun AppContent(modifier: Modifier = Modifier) {
                                 Toast.makeText(context, "No camera app available", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        onGenerateRequested = { prompt ->
+                        onChatRequested = { message ->
                             coroutineScope.launch {
-                                val jsonResult = generateWorksheetFromPrompt(prompt)
-                                val escapedJson = jsonResult.replace("\"", "\\\"").replace("\n", "")
+                                val result = sendChatToGemini(message)
+                                val b64Chat = Base64.encodeToString(result.first.toByteArray(), Base64.NO_WRAP)
+                                val b64Json = Base64.encodeToString(result.second.toByteArray(), Base64.NO_WRAP)
                                 webViewRef?.post {
-                                    webViewRef?.evaluateJavascript("updateFromAI(\"$escapedJson\");", null)
+                                    webViewRef?.evaluateJavascript("receiveChatMessage(\"$b64Chat\", \"$b64Json\");", null)
                                 }
                             }
                         }

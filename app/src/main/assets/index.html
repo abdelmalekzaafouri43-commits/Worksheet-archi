@@ -53,21 +53,34 @@
         <aside class="no-print w-full md:w-96 bg-white border-r border-gray-200 shrink-0 flex flex-col h-1/3 md:h-full overflow-y-auto z-10 shadow-sm md:shadow-none">
             <div class="p-4 space-y-8">
                 
-                <!-- AI Generator Glass Card -->
-                <div class="relative rounded-2xl overflow-hidden p-1 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
+                <!-- AI Generator Glass Card (Chat UI) -->
+                <div class="relative rounded-2xl overflow-hidden p-1 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col h-80">
                     <!-- Colorful Background for Glass Effect -->
                     <div class="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500"></div>
                     <!-- Glass Container -->
-                    <div class="relative bg-white/20 backdrop-blur-xl border border-white/50 rounded-xl p-5 shadow-inner">
-                        <div class="flex items-center mb-3 space-x-2">
+                    <div class="relative bg-white/20 backdrop-blur-xl border border-white/50 rounded-xl p-3 shadow-inner flex flex-col h-full">
+                        <div class="flex items-center mb-2 space-x-2 shrink-0 px-2">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            <h3 class="text-white font-bold text-lg tracking-wide">AI Architect</h3>
+                            <h3 class="text-white font-bold text-lg tracking-wide">AI Architect Chat</h3>
                         </div>
-                        <textarea id="ai-prompt" class="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-lg p-3 text-sm text-gray-900 placeholder-gray-800 focus:outline-none focus:ring-2 focus:ring-white focus:bg-white/70 transition-all resize-none shadow-sm" rows="3" placeholder="Describe the worksheet you want... (e.g. '3rd grade fractions with 10 questions')"></textarea>
-                        <button onclick="generateWithAI()" id="ai-btn" class="mt-3 w-full bg-white/90 hover:bg-white text-purple-700 font-bold py-2.5 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-2 active:scale-95">
-                            <span>Generate Layout</span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        </button>
+                        
+                        <!-- Chat Message Area -->
+                        <div id="chat-container" class="flex-1 overflow-y-auto mb-3 space-y-3 pr-2 custom-scrollbar p-2">
+                            <!-- Initial Greeting -->
+                            <div class="flex flex-col items-start">
+                                <div class="bg-white/60 text-gray-800 text-sm p-2.5 rounded-xl rounded-tl-none max-w-[90%] shadow-sm backdrop-blur-sm border border-white/50">
+                                    Hi! I'm your AI Architect. What kind of worksheet are we building today? Try "Make a 3rd grade math quiz".
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Input Area -->
+                        <div class="flex items-center space-x-2 shrink-0">
+                            <input id="chat-input" type="text" class="flex-1 bg-white/60 backdrop-blur-md border border-white/60 rounded-full px-4 py-2.5 text-sm text-gray-900 placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-white transition-all shadow-inner" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') handleSendChat()">
+                            <button onclick="handleSendChat()" class="bg-white/90 hover:bg-white text-purple-700 p-2.5 rounded-full shadow-md transition-all active:scale-95 border border-white/50">
+                                <svg class="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -299,30 +312,88 @@
             }
         }
 
-        // AI Generation functions
-        function generateWithAI() {
-            const prompt = document.getElementById('ai-prompt').value;
-            if (!prompt) {
-                alert("Please describe the worksheet first!");
-                return;
-            }
-            const btn = document.getElementById('ai-btn');
-            btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-purple-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...';
+        // Chat AI functions
+        function handleSendChat() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
             
-            if (window.Android && window.Android.generateWorksheet) {
-                window.Android.generateWorksheet(prompt);
+            appendMessage(text, 'user');
+            input.value = '';
+            showTypingIndicator();
+
+            if (window.Android && window.Android.sendChatMessage) {
+                window.Android.sendChatMessage(text);
             } else {
-                // Mock simulation if not in Android
                 setTimeout(() => {
-                    updateFromAI('{"heading": "AI Generated Worksheet", "instructions": "Complete the ' + prompt + ' tasks below."}');
-                }, 2000);
+                    receiveChatMessage(btoa("Mock reply: Updating layout!"), btoa('{"heading": "Mock Heading"}'));
+                }, 1500);
             }
         }
 
-        function updateFromAI(jsonString) {
-            const btn = document.getElementById('ai-btn');
-            btn.innerHTML = '<span>Generate Layout</span><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
-            updateFromScan(jsonString);
+        function appendMessage(text, sender) {
+            const container = document.getElementById('chat-container');
+            const div = document.createElement('div');
+            div.className = sender === 'user' ? 'flex flex-col items-end' : 'flex flex-col items-start';
+            
+            const bubble = document.createElement('div');
+            bubble.className = sender === 'user' 
+                ? 'bg-purple-600 text-white text-sm p-2.5 rounded-xl rounded-tr-none max-w-[90%] shadow-md border border-purple-500'
+                : 'bg-white/60 text-gray-800 text-sm p-2.5 rounded-xl rounded-tl-none max-w-[90%] shadow-sm backdrop-blur-sm whitespace-pre-wrap border border-white/50';
+            bubble.innerText = text;
+            
+            div.appendChild(bubble);
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const container = document.getElementById('chat-container');
+            const div = document.createElement('div');
+            div.id = 'typing-indicator';
+            div.className = 'flex flex-col items-start';
+            div.innerHTML = `<div class="bg-white/60 text-gray-800 text-sm p-2.5 rounded-xl rounded-tl-none max-w-[50%] shadow-sm backdrop-blur-sm border border-white/50 flex space-x-1.5 items-center h-10">
+                <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                <div class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) indicator.remove();
+        }
+
+        function b64DecodeUnicode(str) {
+            return decodeURIComponent(atob(str).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+
+        function receiveChatMessage(b64Chat, b64Json) {
+            removeTypingIndicator();
+            try {
+                const chatText = b64DecodeUnicode(b64Chat);
+                if (chatText) appendMessage(chatText, 'ai');
+                
+                const jsonStr = b64DecodeUnicode(b64Json);
+                if (jsonStr && jsonStr !== '{}') {
+                    const data = JSON.parse(jsonStr);
+                    if (data.heading) {
+                        document.getElementById('doc-heading').value = data.heading;
+                        document.getElementById('preview-heading').innerText = data.heading;
+                    }
+                    if (data.instructions) {
+                        document.getElementById('doc-instructions').value = data.instructions;
+                        document.getElementById('preview-instructions').innerText = data.instructions;
+                    }
+                }
+            } catch(e) {
+                console.error(e);
+                appendMessage("Oops, something went wrong.", 'ai');
+            }
         }
     </script>
 </body>

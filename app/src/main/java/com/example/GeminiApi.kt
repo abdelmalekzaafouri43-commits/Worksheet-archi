@@ -24,6 +24,7 @@ data class GenerateContentRequest(
 
 @Serializable
 data class Content(
+    val role: String? = null,
     val parts: List<Part>
 )
 
@@ -120,33 +121,53 @@ suspend fun analyzeWorksheet(bitmap: Bitmap): String = withContext(Dispatchers.I
     }
 }
 
-suspend fun generateWorksheetFromPrompt(prompt: String): String = withContext(Dispatchers.IO) {
+val chatHistory = mutableListOf<Content>()
+
+suspend fun sendChatToGemini(userText: String): Pair<String, String> = withContext(Dispatchers.IO) {
     val apiKey = BuildConfig.GEMINI_API_KEY
     if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
-        return@withContext "{\"error\": \"Gemini API Key missing or invalid\"}"
+        return@withContext Pair("Please set your Gemini API Key in the AI Studio Secrets panel to enable chat.", "{}")
     }
 
-    val fullPrompt = """
-        The user wants to generate a worksheet with the following description: "$prompt"
-        Provide a concise heading and instructions for this worksheet.
-        Respond in JSON format exactly like this:
+    chatHistory.add(Content(role = "user", parts = listOf(Part(text = userText))))
+
+    val systemInstructionText = """
+        You are an AI Worksheet Architect. Chat with the user to help them design a worksheet.
+        If the user asks to modify the worksheet (e.g., set a heading, instructions, or theme), 
+        you MUST include a JSON block in your response with the exact keys:
         {
           "heading": "...",
           "instructions": "..."
         }
-        Only output the JSON. No markdown formatting.
+        Wrap the JSON exactly in ```json and ```.
+        Also provide a brief, friendly conversational reply explaining what you did OUTSIDE the JSON block.
     """.trimIndent()
 
     val request = GenerateContentRequest(
-        contents = listOf(Content(
-            parts = listOf(Part(text = fullPrompt))
-        ))
+        contents = chatHistory.toList(),
+        systemInstruction = Content(parts = listOf(Part(text = systemInstructionText)))
     )
+
     try {
         val response = RetrofitClient.service.generateContent(apiKey, request)
-        val text = response.candidates.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "{}"
-        text.replace("```json", "").replace("```", "").trim()
+        val replyText = response.candidates.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Sorry, I couldn't generate a response."
+        
+        chatHistory.add(Content(role = "model", parts = listOf(Part(text = replyText))))
+
+        val jsonRegex = "```(?:json)?\\s*(\\{.*?\\})\\s*```".toRegex(RegexOption.DOT_MATCHES_ALL)
+        val match = jsonRegex.find(replyText)
+        var jsonString = match?.groupValues?.get(1)?.trim() ?: "{}"
+        
+        if (jsonString == "{}") {
+             if (replyText.trim().startsWith("{") && replyText.trim().endsWith("}")) {
+                 jsonString = replyText.trim()
+             }
+        }
+
+        val conversationalText = replyText.replace(jsonRegex, "").replace("```json", "").replace("```", "").replace(jsonString, "").trim()
+        
+        Pair(if(conversationalText.isNotEmpty()) conversationalText else "Done!", jsonString)
     } catch (e: Exception) {
-        "{\"error\": \"${e.message}\"}"
+        Pair("Error: ${e.message}", "{}")
     }
 }
