@@ -30,6 +30,38 @@
         body {
             overflow: hidden;
         }
+        
+        /* Premium Themes */
+        .theme-fun {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif !important;
+            background-color: #fffaf0 !important;
+        }
+        .theme-fun #layout-grid {
+            border: 4px dashed #ff9a9e !important;
+            border-radius: 16px;
+        }
+        .theme-fun .layout-box {
+            border: 3px dashed #a1c4fd !important;
+            background-color: #fff1eb !important;
+            border-radius: 16px !important;
+        }
+        
+        .theme-geometric {
+            font-family: 'Courier New', Courier, monospace !important;
+            background-color: #ffffff !important;
+            background-image: linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px) !important;
+            background-size: 20px 20px !important;
+        }
+        .theme-geometric #layout-grid {
+            border: 2px solid #111827 !important;
+            gap: 4px !important;
+            background-color: #111827 !important;
+        }
+        .theme-geometric .layout-box {
+            border: 2px solid #111827 !important;
+            background-color: #ffffff !important;
+            border-radius: 0 !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100 h-screen w-screen flex flex-col font-sans">
@@ -135,10 +167,10 @@
                     <div class="space-y-4">
                         <div class="relative flex flex-col space-y-1">
                             <label class="text-sm font-medium text-gray-700">Visual Theme</label>
-                            <select class="border border-gray-300 rounded px-3 py-2 text-sm bg-white pr-8 opacity-75" disabled>
-                                <option>Classic</option>
-                                <option>Fun Elements</option>
-                                <option>Geometric</option>
+                            <select id="theme-select" class="border border-gray-300 rounded px-3 py-2 text-sm bg-white pr-8 cursor-pointer focus:ring-2 focus:ring-amber-500">
+                                <option value="classic">Classic</option>
+                                <option value="fun">Fun Elements</option>
+                                <option value="geometric">Geometric</option>
                             </select>
                             <!-- Badge Icon -->
                             <div class="absolute right-0 top-6 -mr-2 -mt-2 bg-gradient-to-br from-yellow-400 to-orange-500 p-1 rounded-full shadow border border-white">
@@ -403,9 +435,18 @@
             const state = {
                 heading: document.getElementById('doc-heading').value,
                 instructions: document.getElementById('doc-instructions').value,
-                layout: document.getElementById('layout-grid').innerHTML
+                layout: document.getElementById('layout-grid').innerHTML,
+                theme: document.getElementById('theme-select').value
             };
             localStorage.setItem('worksheetState', JSON.stringify(state));
+        }
+
+        function applyTheme(themeName) {
+            const canvas = document.querySelector('.print-canvas');
+            canvas.classList.remove('theme-classic', 'theme-fun', 'theme-geometric');
+            if (themeName !== 'classic') {
+                canvas.classList.add('theme-' + themeName);
+            }
         }
 
         function loadState() {
@@ -423,6 +464,10 @@
                     }
                     if (state.layout) {
                         document.getElementById('layout-grid').innerHTML = state.layout;
+                    }
+                    if (state.theme) {
+                        document.getElementById('theme-select').value = state.theme;
+                        applyTheme(state.theme);
                     }
                 } catch(e) {
                     console.error("Error loading state", e);
@@ -491,6 +536,11 @@
 
             document.getElementById('doc-instructions').addEventListener('input', (e) => {
                 document.getElementById('preview-instructions').innerText = e.target.value || '[Subtitle / Instructions]';
+                saveState();
+            });
+
+            document.getElementById('theme-select').addEventListener('change', (e) => {
+                applyTheme(e.target.value);
                 saveState();
             });
         });
