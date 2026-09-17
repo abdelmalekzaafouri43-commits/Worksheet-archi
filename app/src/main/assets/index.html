@@ -196,18 +196,18 @@
                 <!-- Content Canvas Zone -->
                 <section class="flex-1 px-12 py-8 relative">
                     <!-- Generic Grid Blueprint -->
-                    <div class="w-full h-full border border-dashed border-blue-200 grid grid-cols-2 gap-6 p-4">
-                        <div class="border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center rounded">
-                             <span class="text-gray-400 text-sm">[Layout Box]</span>
+                    <div id="layout-grid" class="w-full h-full border border-dashed border-blue-200 grid grid-cols-2 gap-6 p-4">
+                        <div draggable="true" class="layout-box cursor-move border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center rounded p-4 shadow-sm hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                             <span class="text-gray-400 text-sm pointer-events-none">[Layout Box 1]</span>
                         </div>
-                        <div class="border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center rounded">
-                             <span class="text-gray-400 text-sm">[Layout Box]</span>
+                        <div draggable="true" class="layout-box cursor-move border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center rounded p-4 shadow-sm hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                             <span class="text-gray-400 text-sm pointer-events-none">[Layout Box 2]</span>
                         </div>
-                        <div class="border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center rounded">
-                             <span class="text-gray-400 text-sm">[Layout Box]</span>
+                        <div draggable="true" class="layout-box cursor-move border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center rounded p-4 shadow-sm hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                             <span class="text-gray-400 text-sm pointer-events-none">[Layout Box 3]</span>
                         </div>
-                        <div class="border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center rounded">
-                             <span class="text-gray-400 text-sm">[Layout Box]</span>
+                        <div draggable="true" class="layout-box cursor-move border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center rounded p-4 shadow-sm hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                             <span class="text-gray-400 text-sm pointer-events-none">[Layout Box 4]</span>
                         </div>
                     </div>
                 </section>
@@ -395,6 +395,50 @@
                 appendMessage("Oops, something went wrong.", 'ai');
             }
         }
+
+        // Drag and Drop Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const boxes = document.querySelectorAll('.layout-box');
+            const grid = document.getElementById('layout-grid');
+            let draggedBox = null;
+
+            boxes.forEach(box => {
+                box.addEventListener('dragstart', function(e) {
+                    draggedBox = this;
+                    setTimeout(() => {
+                        this.style.opacity = '0.5';
+                    }, 0);
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                box.addEventListener('dragend', function() {
+                    draggedBox = null;
+                    this.style.opacity = '1';
+                    boxes.forEach(b => b.classList.remove('border-blue-500', 'bg-blue-100'));
+                });
+
+                box.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.classList.add('border-blue-500', 'bg-blue-100');
+                    return false;
+                });
+
+                box.addEventListener('dragleave', function() {
+                    this.classList.remove('border-blue-500', 'bg-blue-100');
+                });
+
+                box.addEventListener('drop', function(e) {
+                    e.stopPropagation();
+                    if (draggedBox !== this) {
+                        // Swap HTML content (or you could swap the actual DOM nodes)
+                        const draggedHTML = draggedBox.innerHTML;
+                        draggedBox.innerHTML = this.innerHTML;
+                        this.innerHTML = draggedHTML;
+                    }
+                    return false;
+                });
+            });
+        });
     </script>
 </body>
 </html>
