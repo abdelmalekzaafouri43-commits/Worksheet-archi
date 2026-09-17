@@ -1,0 +1,6 @@
+{
+  "name": "Worksheet Architect",
+  "description": "A responsive worksheet architect tool built with HTML and Tailwind.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
